@@ -211,6 +211,8 @@ emacs --batch -Q -L . -L /path/to/magit/lisp \
 The tests create real temporary Git repositories and Magit status/diff
 buffers to exercise save, refresh, stage, close/reopen, edit and export.
 
+** Source file annotations
+
 Annotations can be exported ~annotate-export-annotations~ as commented unified diffs, like this:
 
 [[https://raw.githubusercontent.com/bastibe/annotate.el/master/diff-example.png]]
