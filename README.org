@@ -145,6 +145,74 @@ These changes are kept after the buffer is killed.
 
 * Exporting
 
+** Optional Magit hunk reviews
+
+~annotate-magit.el~ provides persistent notes directly on ordinary Magit
+status, diff, and revision hunks.  It uses annotate's overlays and colors;
+it does not modify source files or the diff buffer's text.  Magit 3.3 or
+newer is required only when using this optional module.
+
+#+BEGIN_SRC emacs-lisp
+(require 'annotate-magit)
+;; Optional: automatically enable it in new Magit buffers.
+(add-hook 'magit-mode-hook #'annotate-magit-mode)
+#+END_SRC
+
+For an existing Magit buffer, use ~M-x annotate-magit-mode~.  Do not enable
+the file-oriented ~annotate-mode~ in that buffer at the same time.
+
+1. Expand a hunk in Magit.  Select a region within one hunk to annotate
+   specific lines, or leave the region inactive to annotate the whole hunk.
+2. Press ~C-c C-a~.  Write a multiline comment in the note editor, then
+   ~C-c C-c~ to save immediately (~C-c C-k~ cancels).
+3. Repeat across files.  ~C-c C-a~ on an existing note edits it;
+   ~C-c C-d~ deletes the note at point.
+4. ~C-c C-s~ previews all saved notes for the current worktree.
+   ~C-c C-w~ copies the complete Markdown review to the kill ring, ready to
+   paste into Claude Code, Codex, or another AI session.
+
+The report contains file paths, old/new *source* line ranges (including
+deleted lines), the original full hunks, the branch and HEAD at review,
+and stable note IDs.  Lisp integrations can call
+~annotate-magit-review-string~ to obtain the same report directly.
+Copying a report does not delete or resolve its notes.  Agent selection
+and sending remain the responsibility of the caller.
+
+Notes are stored separately in ~annotate-magit-file~ (by default
+=~/.emacs.d/annotate-magit-reviews=), and survive refreshing, closing the
+buffer, and restarting Emacs.  Worktrees have separate review identities.
+Every save reads the database again, so notes from multiple buffers in one
+Emacs instance are combined.  Simultaneous writes from multiple Emacs
+processes are not coordinated; use separate databases in that situation.
+
+Reattachment is deliberately conservative: the file, diff type, branch, HEAD,
+revision range, and full hunk text (including its header) must still
+match exactly and uniquely.  Staging, moving, changing, or removing a hunk
+may therefore remove its displayed note, but *never its saved comment*.
+The report retains such notes as ~UNMATCHED~, with their original snapshot.
+This also applies when a hunk is outside the current view or a diff filter
+excludes it; ~UNMATCHED~ does not itself prove the code changed.
+
+Merge/combined diffs, binary or metadata-only hunks, and regions spanning
+multiple hunks are rejected.  An unmatched note can be removed explicitly
+with ~M-x annotate-magit-delete~: when no note is at point, it offers all
+saved worktree notes for selection, including unmatched ones.  Lisp callers
+can use ~(annotate-magit-delete NOTE-ID)~.
+
+*** Running the regression tests
+
+With Magit and its dependencies on ~load-path~:
+
+#+BEGIN_SRC sh
+emacs --batch -Q -L . -L /path/to/magit/lisp \
+  -l test/annotate-magit-test.el -f ert-run-tests-batch-and-exit
+#+END_SRC
+
+The tests create real temporary Git repositories and Magit status/diff
+buffers to exercise save, refresh, stage, close/reopen, edit and export.
+
+** Source file annotations
+
 Annotations can be exported ~annotate-export-annotations~ as commented unified diffs, like this:
 
 [[https://raw.githubusercontent.com/bastibe/annotate.el/master/diff-example.png]]

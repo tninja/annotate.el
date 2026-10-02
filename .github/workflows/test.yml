@@ -50,7 +50,17 @@ jobs:
       with:
         version: 'snapshot'
 
-    - name: Run tests
+    # Current package-build requires Emacs 29.1.  Keep checking the
+    # package's Emacs 27/28 compatibility without that build dependency.
+    - name: Compile on older Emacs
+      if: matrix.emacs-version == '27.2' || matrix.emacs-version == '28.2'
+      run: >-
+        emacs --batch -Q -L .
+        --eval "(progn (require 'subr-x) (setq byte-compile-error-on-warn t))"
+        -f batch-byte-compile annotate.el annotate-magit.el
+
+    - name: Build and compile package
+      if: matrix.emacs-version != '27.2' && matrix.emacs-version != '28.2'
       run: |
         eask package
         eask install

@@ -1,0 +1,37 @@
+name: Magit review integration
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  review-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs-version: ['29.4', '30.1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jcs090218/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+      - name: Install optional Magit dependency
+        run: |
+          emacs --batch -Q --eval "(progn
+            (require 'package)
+            (setq package-archives '((\"gnu\" . \"https://elpa.gnu.org/packages/\")
+                                     (\"nongnu\" . \"https://elpa.nongnu.org/nongnu/\")))
+            (package-initialize)
+            (package-refresh-contents)
+            (package-install 'magit))"
+      - name: Compile optional integration
+        run: |
+          emacs --batch -Q -L . --eval "(progn
+            (require 'package) (package-initialize)
+            (setq byte-compile-error-on-warn t))" \
+            -f batch-byte-compile annotate-magit.el
+      - name: Test real Magit review buffers
+        run: |
+          emacs --batch -Q -L . --eval "(progn
+            (require 'package) (package-initialize))" \
+            -l test/annotate-magit-test.el -f ert-run-tests-batch-and-exit
